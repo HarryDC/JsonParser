@@ -46,7 +46,7 @@ void json_free_value(json_value* val)
 		break;
 	case TYPE_ARRAY:
 	case TYPE_OBJECT:
-		vector_foreach(&(val->value.array), json_free_value);
+		vector_foreach(&(val->value.array), (void (*)(void*))json_free_value);
 		vector_free(&(val->value.array));
 		break;
 	}
@@ -59,7 +59,7 @@ static void skip_whitespace(const char** cursor)
 	while (iscntrl(**cursor) || isspace(**cursor)) ++(*cursor);
 }
 
-static int has_char(char** cursor, char character)
+static int has_char(const char** cursor, char character)
 {
 	skip_whitespace(cursor);
 	int success = **cursor == character;
@@ -140,7 +140,7 @@ int json_parse_value(const char** cursor, json_value* parent)
 	int success = 0;
 	skip_whitespace(cursor);
 	switch (**cursor) {
-		case '/0': 
+		case 0: 
 			// If parse_value is called with the cursor at the end of the string
 			// that's a failure
 			success = 0;

@@ -193,11 +193,11 @@ void vector_test_reserve(void)
 	vector_free(&v);
 }
 
-void foreach_increment_nodata(int* item)
+void foreach_increment_nodata(void* item)
 {
 	assert(item != NULL);
-
-	*item = *item + 1;
+	int* val = item;
+	*val = *val + 1;
 }
 
 
@@ -228,12 +228,12 @@ void vector_test_foreach_nodata(void)
 }
 
 
-int foreach_increment_data_null(int* item, void* data)
+int foreach_increment_data_null(void* item, void* data)
 {
 	assert(item != NULL);
 	assert(data == NULL);
-
-	*item = *item + 1;
+	int* val = item;
+	*val = *val + 1;
 	return 0;
 }
 
