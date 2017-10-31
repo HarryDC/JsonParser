@@ -47,6 +47,7 @@ void json_free_value(json_value* val)
 	case TYPE_ARRAY:
 	case TYPE_OBJECT:
 		vector_foreach(&(val->value.array), json_free_value);
+		vector_free(&(val->value.array));
 		break;
 	}
 
@@ -251,6 +252,7 @@ void json_test_value_string(void)
 	assert(result.type == TYPE_STRING);
 	assert(result.value.string != NULL);
 	assert(strlen(result.value.string) == 0);
+	json_free_value(&result);
 
 	printf(" OK\n");
 }

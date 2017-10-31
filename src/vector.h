@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stddef.h>
+
 typedef struct {
     size_t capacity;
     size_t data_size;
