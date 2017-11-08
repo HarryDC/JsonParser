@@ -491,7 +491,7 @@ void json_test_coarse(void)
 	assert(json_value_to_string(val) != NULL);
 	assert(strcmp(json_value_to_string(val), "An Item") == 0);
 
-
+	json_free_value(&root);
 	printf(" OK\n");
 }
 
