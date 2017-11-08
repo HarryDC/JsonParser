@@ -38,12 +38,12 @@ void vector_free(vector* v)
 }
 
 // Return the element at index, does not do a range check
-void* vector_get(vector* v, size_t index) {
+void* vector_get(const vector* v, size_t index) {
 	return &(v->data[index * v->data_size]);
 }
 
 // Return the element at index, return NULL if index is out of range for the vector
-void* vector_get_checked(vector* v, size_t index) {
+void* vector_get_checked(const vector* v, size_t index) {
 	return (index >= 0 && index < v->size) ? &(v->data[index * v->data_size]) : NULL;
 }
 
@@ -70,25 +70,23 @@ void vector_push_back(vector* v, void* data) {
     ++v->size;
 }
 
-void vector_foreach_data(vector* v, int(*fp)(void*, void*), void* data)
+void vector_foreach_data(const vector* v, vector_foreach_data_t fp, void* data)
 {
 	if (v == NULL) return;
 	char* item = v->data;
 	assert(item != NULL);
-	for (size_t i = 0; i < v->size; i++)
-	{
-		fp(item, (void *)data);
+	for (size_t i = 0; i < v->size; i++) {
+		if (! fp(item, (void *)data)) break;
 		item += v->data_size;
 	}
 }
 
-void vector_foreach(vector* v, void (*fp)(void*))
+void vector_foreach(const vector* v, vector_foreach_t fp)
 {
 	if (v == NULL) return;
 	char* item = v->data;
 	assert(item != NULL);
-	for (size_t i = 0; i < v->size; i++)
-	{
+	for (size_t i = 0; i < v->size; i++) {
 		fp(item);
 		item += v->data_size;
 	}
@@ -183,8 +181,7 @@ void vector_test_reserve(void)
 
 	// if we didn't assign the correct space VS will shout about overwriting memory in DEBUG
 	int* p = (int*)v.data;
-	for (int i = 0; i < 10; ++i)
-	{
+	for (int i = 0; i < 10; ++i) {
 		*p = i;
 		++p;
 	}
@@ -234,7 +231,7 @@ int foreach_increment_data_null(void* item, void* data)
 	assert(data == NULL);
 	int* val = item;
 	*val = *val + 1;
-	return 0;
+	return 1;
 }
 
 
@@ -246,16 +243,14 @@ void vector_test_foreach_data_1(void)
 	vector_init(&v, sizeof(int));
 	int val = 0;
 
-	for (size_t i = 0; i < 5; ++i)
-	{
+	for (size_t i = 0; i < 5; ++i) {
 		vector_push_back(&v, &val);
 		++val;
 	}
 
 	vector_foreach_data(&v, foreach_increment_data_null, NULL);
 
-	for (size_t i = 0; i < 5; ++i)
-	{
+	for (size_t i = 0; i < 5; ++i) {
 		int* d = vector_get(&v, i);
 		assert(*d == i+1);
 	}
@@ -274,7 +269,7 @@ int foreach_increment_data(void* item, void* data)
 	assert(data != NULL);
 	int *i = item;
 	((struct foreach_data*)data)->i += *i;
-	return 0;
+	return 1;
 }
 
 void vector_test_foreach_data_2(void)
@@ -285,12 +280,10 @@ void vector_test_foreach_data_2(void)
 	vector_init(&v, sizeof(int));
 	int val = 4;
 	int sum = 0;
-	for (size_t i = 0; i < 5; ++i)
-	{
+	for (size_t i = 0; i < 5; ++i) {
 		vector_push_back(&v, &val);
 		sum += val;
 		++val;
-
 	}
 
 	struct foreach_data data = {.i=0};
