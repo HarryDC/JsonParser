@@ -1,8 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-#include <ctype.h>
 
 #include "vector.h"
 
@@ -28,9 +23,9 @@ typedef struct {
 	} value;
 } json_value;
 
-void json_free_value(json_value * val);
-
 int json_parse(const char* input, json_value* root);
+
+void json_free_value(json_value* val);
 
 #ifdef _DEBUG
 void json_test_all(void);

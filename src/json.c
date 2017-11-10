@@ -1,5 +1,11 @@
 #include "json.h"
 
+#include <assert.h>
+#include <ctype.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
+
 static int json_parse_value(const char ** cursor, json_value * parent);
 
 static void skip_whitespace(const char** cursor)
@@ -18,7 +24,6 @@ static int has_char(const char** cursor, char character)
 
 static int json_parse_object(const char** cursor, json_value* parent)
 {
-	// Could refactor this into function json_init_value(type)
 	json_value result = { .type = TYPE_OBJECT };
 	vector_init(&result.value.object, sizeof(json_value));
 
@@ -111,7 +116,7 @@ static int json_parse_value(const char** cursor, json_value* parent)
 	int success = 0;
 	skip_whitespace(cursor);
 	switch (**cursor) {
-		case 0:
+		case '\0':
 			// If parse_value is called with the cursor at the end of the string
 			// that's a failure
 			success = 0;
@@ -246,16 +251,9 @@ json_value* json_value_with_key(const json_value* object, const char* key)
 	return NULL;
 }
 
-
-
-
 #ifdef _DEBUG
 
-const char* test_string = " \
-{ \"item1\" : [1, 2, 3, 4], \
-  \"item2\" : { \"a\" : 1, \"b\" : 2, \"c\" : 3 }, \
-  \"item3\" : \"An Item\" \
-}";
+#include <stdio.h>
 
 void json_test_value_string(void)
 {
@@ -374,13 +372,12 @@ void json_test_value_array(void)
 	}
 	{
 		// Failure
+		// Shouldn't need to free, valgrind shouldn't show leak
 		const char* string = "[0, 2, 0";
 		json_value result = { .type = TYPE_NULL };
 		assert(result.value.array.data == NULL);
 		assert(result.type == TYPE_NULL);
 		assert(result.value.array.data == NULL);
-
-		json_free_value(&result);
 	}
 
 
@@ -470,12 +467,27 @@ void json_test_value_literal(void) {
 	printf(" OK\n");
 }
 
+const char* test_string_valid = " \
+{ \"item1\" : [1, 2, 3, 4], \
+  \"item2\" : { \"a\" : 1, \"b\" : 2, \"c\" : 3 }, \
+  \"item3\" : \"An Item\" \
+}";
+
+
+const char* test_string_invalid = " \
+{ \"item1\" : [1, 2, 3, 4], \
+  \"item2\" : { \"a\" : 1, \"b\" : 2, \"c\" : 3 }, \
+  \"item3\" , \"An Item\" \
+}";
+
+
+
 void json_test_coarse(void)
 {
 	printf("json_test_coarse: ");
 
 	json_value root;
-	assert(json_parse(test_string, &root));
+	assert(json_parse(test_string_valid, &root));
 
 	json_value* val = json_value_with_key(&root, "item1");
 
@@ -492,6 +504,10 @@ void json_test_coarse(void)
 	assert(strcmp(json_value_to_string(val), "An Item") == 0);
 
 	json_free_value(&root);
+	
+	// valgrind check for releasing intermediary data
+	assert(!json_parse(test_string_invalid, &root));
+	
 	printf(" OK\n");
 }
 
