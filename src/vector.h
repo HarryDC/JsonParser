@@ -1,4 +1,5 @@
-#pragma once
+#ifndef HS_VECTOR_H
+#define HS_VECTOR_H
 
 #include <stddef.h>
 
@@ -32,4 +33,6 @@ void vector_foreach_data(const vector* v, vector_foreach_data_t fp, void* data);
 
 #ifdef _DEBUG
 void vector_test_all();
+#endif
+
 #endif

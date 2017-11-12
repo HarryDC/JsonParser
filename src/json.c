@@ -236,11 +236,11 @@ json_value* json_value_at(const json_value* root, size_t index)
 	}
 }
 
-json_value* json_value_with_key(const json_value* object, const char* key)
+json_value* json_value_with_key(const json_value* root, const char* key)
 {
-	assert(object->type == TYPE_OBJECT);
-	json_value* data = (json_value*)object->value.object.data;
-	size_t size = object->value.object.size;
+	assert(root->type == TYPE_OBJECT);
+	json_value* data = (json_value*)root->value.object.data;
+	size_t size = root->value.object.size;
 	for (size_t i = 0; i < size; i += 2)
 	{
 		if (strcmp(data[i].value.string, key) == 0)
@@ -251,7 +251,7 @@ json_value* json_value_with_key(const json_value* object, const char* key)
 	return NULL;
 }
 
-#ifdef _DEBUG
+#ifdef BUILD_TEST
 
 #include <stdio.h>
 

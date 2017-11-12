@@ -1,13 +1,14 @@
+
 #include "vector.h"
 #include "json.h"
 
 int main(int arc, const char* argv[])
 {
 
-#ifdef  _DEBUG
+#ifdef BUILD_TEST
 	vector_test_all();
 	json_test_all();
-#endif 
+#endif
 
 	return 0;
 }

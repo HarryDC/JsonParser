@@ -1,17 +1,9 @@
 
 #include "vector.h"
 
-#ifdef _MSC_VER 
-	#define _CRTDBG_MAP_ALLOC  
-	#include <stdlib.h>  
-	#include <crtdbg.h> 
-#else
-	#include <stdlib.h>
-	#define _CrtDumpMemoryLeaks()	((int)0)
-#endif
-
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 // Allocate the data structure for the vector
@@ -92,7 +84,7 @@ void vector_foreach(const vector* v, vector_foreach_t fp)
 	}
 }
 
-#ifdef _DEBUG
+#ifdef BUILD_TEST
 
 void vector_test_alloc_free(void)
 {
