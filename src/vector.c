@@ -36,7 +36,7 @@ void* vector_get(const vector* v, size_t index) {
 
 // Return the element at index, return NULL if index is out of range for the vector
 void* vector_get_checked(const vector* v, size_t index) {
-	return (index >= 0 && index < v->size) ? &(v->data[index * v->data_size]) : NULL;
+	return (index < v->size) ? &(v->data[index * v->data_size]) : NULL;
 }
 
 // if capacity < new_capacity realloc up to new_capacity
