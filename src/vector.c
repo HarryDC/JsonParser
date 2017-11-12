@@ -296,7 +296,6 @@ void vector_test_all(void)
 	vector_test_foreach_nodata();
 	vector_test_foreach_data_1();
 	vector_test_foreach_data_2();
-	_CrtDumpMemoryLeaks();
 }
 
 #endif // UNIT_TEST

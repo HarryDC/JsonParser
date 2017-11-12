@@ -31,7 +31,7 @@ typedef int(*vector_foreach_data_t)(void*, void*);
 
 void vector_foreach_data(const vector* v, vector_foreach_data_t fp, void* data);
 
-#ifdef _DEBUG
+#ifdef BUILD_TEST
 void vector_test_all();
 #endif
 

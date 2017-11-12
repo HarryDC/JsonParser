@@ -31,7 +31,7 @@ static int json_parse_object(const char** cursor, json_value* parent)
 	while (success && !has_char(cursor, '}')) {
 		json_value key = { .type = TYPE_NULL };
 		json_value value = { .type = TYPE_NULL };
-		if (json_parse_value(cursor, &key));
+		success = json_parse_value(cursor, &key);
 		success = success && has_char(cursor, ':');
 		success = success && json_parse_value(cursor, &value);
 
