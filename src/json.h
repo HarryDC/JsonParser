@@ -4,13 +4,12 @@
 #include "vector.h"
 
 enum json_value_type {
-	TYPE_NULL,
-	TYPE_BOOL,
-	TYPE_NUMBER,
-	TYPE_OBJECT, // Is a vector with pairwise entries, key, value
-	TYPE_ARRAY, // Is a vector, all entries are plain 
-	TYPE_STRING,
-	TYPE_KEY
+	JSON_TYPE_NULL,
+	JSON_TYPE_BOOL,
+	JSON_TYPE_NUMBER,
+	JSON_TYPE_OBJECT, // Is a vector with pairwise entries, key, value
+	JSON_TYPE_ARRAY, // Is a vector, all entries are plain 
+	JSON_TYPE_STRING
 };
 
 typedef struct {

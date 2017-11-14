@@ -14,7 +14,7 @@ static void skip_whitespace(const char** cursor)
 	while (iscntrl(**cursor) || isspace(**cursor)) ++(*cursor);
 }
 
-static int has_char(const char** cursor, char character)
+static int read_char(const char** cursor, char character)
 {
 	skip_whitespace(cursor);
 	int success = **cursor == character;
@@ -24,15 +24,15 @@ static int has_char(const char** cursor, char character)
 
 static int json_parse_object(const char** cursor, json_value* parent)
 {
-	json_value result = { .type = TYPE_OBJECT };
+	json_value result = { .type = JSON_TYPE_OBJECT };
 	vector_init(&result.value.object, sizeof(json_value));
 
 	int success = 1;
-	while (success && !has_char(cursor, '}')) {
-		json_value key = { .type = TYPE_NULL };
-		json_value value = { .type = TYPE_NULL };
-		success = json_parse_value(cursor, &key);
-		success = success && has_char(cursor, ':');
+	while (success && !read_char(cursor, '}')) {
+		json_value key = { .type = JSON_TYPE_NULL };
+		json_value value = { .type = JSON_TYPE_NULL };
+		success = json_parse_value(cursor, &key) && key.type == JSON_TYPE_STRING;
+		success = success && read_char(cursor, ':');
 		success = success && json_parse_value(cursor, &value);
 
 		if (success) {
@@ -44,8 +44,8 @@ static int json_parse_object(const char** cursor, json_value* parent)
 			break;
 		}
 		skip_whitespace(cursor);
-		if (has_char(cursor, '}')) break;
-		else if (has_char(cursor, ',')) continue;
+		if (read_char(cursor, '}')) break;
+		else if (read_char(cursor, ',')) continue;
 		else success = 0;
 	}
 
@@ -68,14 +68,14 @@ static int json_parse_array(const char** cursor, json_value* parent)
 		return success;
 	}
 	while (success) {
-		json_value new_value = { .type = TYPE_NULL };
+		json_value new_value = { .type = JSON_TYPE_NULL };
 		success = json_parse_value(cursor, &new_value);
 		if (!success) break;
 		skip_whitespace(cursor);
 		vector_push_back(&parent->value.array, &new_value);
 		skip_whitespace(cursor);
-		if (has_char(cursor, ']')) break;
-		else if (has_char(cursor, ',')) continue;
+		if (read_char(cursor, ']')) break;
+		else if (read_char(cursor, ',')) continue;
 		else success = 0;
 	}
 	return success;
@@ -87,18 +87,18 @@ void json_free_value(json_value* val)
 	if (!val) return;
 
 	switch (val->type) {
-		case TYPE_STRING:
+		case JSON_TYPE_STRING:
 			free(val->value.string);
 			val->value.string = NULL;
 			break;
-		case TYPE_ARRAY:
-		case TYPE_OBJECT:
+		case JSON_TYPE_ARRAY:
+		case JSON_TYPE_OBJECT:
 			vector_foreach(&(val->value.array), (void(*)(void*))json_free_value);
 			vector_free(&(val->value.array));
 			break;
 	}
 
-	val->type = TYPE_NULL;
+	val->type = JSON_TYPE_NULL;
 }
 
 int json_is_literal(const char** cursor, const char* literal) {
@@ -133,7 +133,7 @@ static int json_parse_value(const char** cursor, json_value* parent)
 
 				assert(len == strlen(new_string));
 
-				parent->type = TYPE_STRING;
+				parent->type = JSON_TYPE_STRING;
 				parent->value.string = new_string;
 
 				*cursor = end + 1;
@@ -146,19 +146,20 @@ static int json_parse_value(const char** cursor, json_value* parent)
 			success = json_parse_object(cursor, parent);
 			break;
 		case '[':
-			parent->type = TYPE_ARRAY;
+			parent->type = JSON_TYPE_ARRAY;
 			vector_init(&parent->value.array, sizeof(json_value));
 			++(*cursor);
 			skip_whitespace(cursor);
 			success = json_parse_array(cursor, parent);
 			if (!success) {
+				parent->type = JSON_TYPE_NULL;
 				vector_free(&parent->value.array);
 			}
 			break;
 		case 't': {
 			success = json_is_literal(cursor, "true");
 			if (success) {
-				parent->type = TYPE_BOOL;
+				parent->type = JSON_TYPE_BOOL;
 				parent->value.boolean = 1;
 			}
 			break;
@@ -166,7 +167,7 @@ static int json_parse_value(const char** cursor, json_value* parent)
 		case 'f': {
 			success = json_is_literal(cursor, "false");
 			if (success) {
-				parent->type = TYPE_BOOL;
+				parent->type = JSON_TYPE_BOOL;
 				parent->value.boolean = 0;
 			}
 			break;
@@ -178,7 +179,7 @@ static int json_parse_value(const char** cursor, json_value* parent)
 			char* end;
 			double number = strtod(*cursor, &end);
 			if (*cursor != end) {
-				parent->type = TYPE_NUMBER;
+				parent->type = JSON_TYPE_NUMBER;
 				parent->value.number = number;
 				*cursor = end;
 				success = 1;
@@ -197,37 +198,37 @@ int json_parse(const char* input, json_value* result)
 
 char* json_value_to_string(json_value* value)
 {
-	assert(value->type == TYPE_STRING);
+	assert(value->type == JSON_TYPE_STRING);
 	return (char *)value->value.string;
 }
 
 double json_value_to_double(json_value* value)
 {
-	assert(value->type == TYPE_NUMBER);
+	assert(value->type == JSON_TYPE_NUMBER);
 	return value->value.number;
 }
 
 int json_value_to_bool(json_value* value)
 {
-	assert(value->type == TYPE_BOOL);
+	assert(value->type == JSON_TYPE_BOOL);
 	return value->value.boolean;
 }
 
 vector* json_value_to_array(json_value* value)
 {
-	assert(value->type == TYPE_ARRAY);
+	assert(value->type == JSON_TYPE_ARRAY);
 	return &value->value.array;
 }
 
 vector* json_value_to_object(json_value* value)
 {
-	assert(value->type == TYPE_OBJECT);
+	assert(value->type == JSON_TYPE_OBJECT);
 	return &value->value.object;
 }
 
 json_value* json_value_at(const json_value* root, size_t index)
 {
-	assert(root->type == TYPE_ARRAY);
+	assert(root->type == JSON_TYPE_ARRAY);
 	if (root->value.array.size < index) {
 		return vector_get_checked(&root->value.array,index);
 	}
@@ -238,7 +239,7 @@ json_value* json_value_at(const json_value* root, size_t index)
 
 json_value* json_value_with_key(const json_value* root, const char* key)
 {
-	assert(root->type == TYPE_OBJECT);
+	assert(root->type == JSON_TYPE_OBJECT);
 	json_value* data = (json_value*)root->value.object.data;
 	size_t size = root->value.object.size;
 	for (size_t i = 0; i < size; i += 2)
@@ -260,9 +261,9 @@ void json_test_value_string(void)
 	printf("json_parse_value_string: ");
 	// Normal parse, skip whitespace
 	const char* string = "     \n\t\"Hello World!\"";
-	json_value result = { .type = TYPE_NULL };
+	json_value result = { .type = JSON_TYPE_NULL };
 	assert(json_parse_value(&string, &result));
-	assert(result.type == TYPE_STRING);
+	assert(result.type == JSON_TYPE_STRING);
 	assert(result.value.string != NULL);
 	assert(strlen(result.value.string) == 12);
 	assert(strcmp("Hello World!", result.value.string) == 0);
@@ -272,7 +273,7 @@ void json_test_value_string(void)
 	// Empty string
 	string = "\"\"";
 	json_parse_value(&string, &result);
-	assert(result.type == TYPE_STRING);
+	assert(result.type == JSON_TYPE_STRING);
 	assert(result.value.string != NULL);
 	assert(strlen(result.value.string) == 0);
 	json_free_value(&result);
@@ -284,9 +285,9 @@ void json_test_value_number(void)
 {
 	printf("json_test_value_number: ");
 	const char* string = "  23.4";
-	json_value result = { .type = TYPE_NULL };
+	json_value result = { .type = JSON_TYPE_NULL };
 	assert(json_parse_value(&string, &result));
-	assert(result.type == TYPE_NUMBER);
+	assert(result.type == JSON_TYPE_NUMBER);
 	assert(result.value.number == 23.4);
 
 	json_free_value(&result);
@@ -299,17 +300,17 @@ void json_test_value_invalid(void)
 	{
 		// not a valid value
 		const char* string = "xxx";
-		json_value result = { .type = TYPE_NULL };
+		json_value result = { .type = JSON_TYPE_NULL };
 		assert(!json_parse_value(&string, &result));
-		assert(result.type == TYPE_NULL);
+		assert(result.type == JSON_TYPE_NULL);
 		json_free_value(&result);
 	}
 	{
 		// parse_value at end should fail
 		const char* string = "";
-		json_value result = { .type = TYPE_NULL };
+		json_value result = { .type = JSON_TYPE_NULL };
 		assert(!json_parse_value(&string, &result));
-		assert(result.type == TYPE_NULL);
+		assert(result.type == JSON_TYPE_NULL);
 		json_free_value(&result);
 	}
 	printf(" OK\n");
@@ -321,10 +322,10 @@ void json_test_value_array(void)
 	{
 		// Empty Array
 		const char* string = "[]";
-		json_value result = { .type = TYPE_NULL };
+		json_value result = { .type = JSON_TYPE_NULL };
 		assert(result.value.array.data == NULL);
 		assert(json_parse_value(&string, &result));
-		assert(result.type = TYPE_ARRAY);
+		assert(result.type = JSON_TYPE_ARRAY);
 		assert(result.value.array.data != NULL);
 		assert(result.value.array.size == 0);
 		json_free_value(&result);
@@ -333,15 +334,15 @@ void json_test_value_array(void)
 	{
 		// One Element
 		const char* string = "[\"Hello World\"]";
-		json_value result = { .type = TYPE_NULL };
+		json_value result = { .type = JSON_TYPE_NULL };
 		assert(result.value.array.data == NULL);
 		assert(json_parse_value(&string, &result));
-		assert(result.type = TYPE_ARRAY);
+		assert(result.type = JSON_TYPE_ARRAY);
 		assert(result.value.array.data != NULL);
 		assert(result.value.array.size == 1);
 
 		json_value* string_value = (json_value *)result.value.array.data;
-		assert(string_value->type == TYPE_STRING);
+		assert(string_value->type == JSON_TYPE_STRING);
 		assert(strcmp("Hello World", string_value->value.string) == 0);;
 
 		json_free_value(&result);
@@ -350,10 +351,10 @@ void json_test_value_array(void)
 	{
 		// Mutliple Elements
 		const char* string = "[0, 1, 2, 3]";
-		json_value result = { .type = TYPE_NULL };
+		json_value result = { .type = JSON_TYPE_NULL };
 		assert(result.value.array.data == NULL);
 		assert(json_parse_value(&string, &result));
-		assert(result.type = TYPE_ARRAY);
+		assert(result.type = JSON_TYPE_ARRAY);
 		assert(result.value.array.data != NULL);
 		assert(result.value.array.size == 4);
 
@@ -363,9 +364,10 @@ void json_test_value_array(void)
 	{
 		// Failure
 		const char* string = "[0, 2,,]";
-		json_value result = { .type = TYPE_NULL };
+		json_value result = { .type = JSON_TYPE_NULL };
 		assert(result.value.array.data == NULL);
-		assert(result.type == TYPE_NULL);
+		assert(!json_parse_value(&string, &result));
+		assert(result.type == JSON_TYPE_NULL);
 		assert(result.value.array.data == NULL);
 
 		json_free_value(&result);
@@ -374,9 +376,10 @@ void json_test_value_array(void)
 		// Failure
 		// Shouldn't need to free, valgrind shouldn't show leak
 		const char* string = "[0, 2, 0";
-		json_value result = { .type = TYPE_NULL };
+		json_value result = { .type = JSON_TYPE_NULL };
 		assert(result.value.array.data == NULL);
-		assert(result.type == TYPE_NULL);
+		assert(!json_parse_value(&string, &result));
+		assert(result.type == JSON_TYPE_NULL);
 		assert(result.value.array.data == NULL);
 	}
 
@@ -390,10 +393,10 @@ void json_test_value_object(void)
 	{
 		// Empty Object
 		const char* string = "{}";
-		json_value result = { .type = TYPE_NULL };
+		json_value result = { .type = JSON_TYPE_NULL };
 		assert(result.value.object.data == NULL);
 		assert(json_parse_value(&string, &result));
-		assert(result.type = TYPE_OBJECT);
+		assert(result.type = JSON_TYPE_OBJECT);
 		assert(result.value.array.data != NULL);
 		assert(result.value.array.size == 0);
 		json_free_value(&result);
@@ -402,10 +405,10 @@ void json_test_value_object(void)
 	{
 		// One Pair
 		const char* string = "{ \"a\"  :   1  }";
-		json_value result = { .type = TYPE_NULL };
+		json_value result = { .type = JSON_TYPE_NULL };
 		assert(result.value.object.data == NULL);
 		assert(json_parse_value(&string, &result));
-		assert(result.type = TYPE_OBJECT);
+		assert(result.type = JSON_TYPE_OBJECT);
 		assert(result.value.array.data != NULL);
 		assert(result.value.array.size == 2);
 
@@ -420,10 +423,10 @@ void json_test_value_object(void)
 	{
 		// Multiple Pairs
 		const char* string = "{ \"a\": 1, \"b\" : 2, \"c\" : 3 }";
-		json_value result = { .type = TYPE_NULL };
+		json_value result = { .type = JSON_TYPE_NULL };
 		assert(result.value.object.data == NULL);
 		assert(json_parse_value(&string, &result));
-		assert(result.type = TYPE_OBJECT);
+		assert(result.type = JSON_TYPE_OBJECT);
 		assert(result.value.array.data != NULL);
 		assert(result.value.array.size == 6);
 
@@ -441,27 +444,27 @@ void json_test_value_literal(void) {
 	printf("json_test_values_literal: ");
 	{
 		const char* string = "true";
-		json_value result = { .type = TYPE_NULL };
+		json_value result = { .type = JSON_TYPE_NULL };
 		assert(json_parse_value(&string, &result));
-		assert(result.type == TYPE_BOOL);
+		assert(result.type == JSON_TYPE_BOOL);
 		assert(result.value.boolean);
 		json_free_value(&result);
 	}
 
 	{
 		const char* string = "false";
-		json_value result = { .type = TYPE_NULL };
+		json_value result = { .type = JSON_TYPE_NULL };
 		assert(json_parse_value(&string, &result));
-		assert(result.type == TYPE_BOOL);
+		assert(result.type == JSON_TYPE_BOOL);
 		assert(!result.value.boolean);
 		json_free_value(&result);
 	}
 
 	{
 		const char* string = "null";
-		json_value result = { .type = TYPE_NULL };
+		json_value result = { .type = JSON_TYPE_NULL };
 		assert(json_parse_value(&string, &result));
-		assert(result.type == TYPE_NULL);
+		assert(result.type == JSON_TYPE_NULL);
 		json_free_value(&result);
 	}
 	printf(" OK\n");
@@ -491,7 +494,7 @@ void json_test_coarse(void)
 
 	json_value* val = json_value_with_key(&root, "item1");
 
-	assert(root.type == TYPE_OBJECT);
+	assert(root.type == JSON_TYPE_OBJECT);
 	assert(root.value.object.size == 6);
 
 	assert(val != NULL);
