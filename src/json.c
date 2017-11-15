@@ -82,23 +82,67 @@ static int json_parse_array(const char** cursor, json_value* parent)
 
 static int json_parse_string(const char** cursor, json_value* parent)
 {
-	int success = 0;
+	int success = 1;
 	const char* start = *cursor;
-	char* end = strchr(*cursor, '"');
-	if (end) {
-		size_t len = end - start;
-		char* new_string = malloc((len + 1) * sizeof(char));
-		memcpy(new_string, start, len);
-		new_string[len] = '\0';
+	char* end = strchr(start, '"');
+	// Find actual string length
+	while (end != NULL && *(end - 1) == '\\')
+	{
+		start = end + 1;
+		end = strchr(start, '"');
+	}
 
-		assert(len == strlen(new_string));
+	start = *cursor;
+	char* new_string = NULL;
 
+	if (!end) return 0;
+
+	size_t len = end - start;
+	new_string = malloc((len + 1) * sizeof(char));
+	if (!new_string) return 0;
+
+	char* target = new_string;
+	const char* source = *cursor;
+
+	while (success && source != end)
+	{
+		if (*source == '\\') {
+			source++;
+			switch (*source) {
+				case '"':
+				case '\\':
+				case '/':
+				case '\b':
+				case '\f':
+				case '\n':
+				case '\r':
+				case '\t':
+					*target++ = *source++;
+					break;
+				case 'u':
+					break;
+				default:
+					success = 0;
+					break;
+			}
+		}
+		else {
+			*target++ = *source++;
+		}
+	}
+
+	if (success)
+	{
 		parent->type = JSON_TYPE_STRING;
 		parent->value.string = new_string;
-
 		*cursor = end + 1;
-		success = 1;
+		*target = '\0';
 	}
+	else
+	{
+		free(new_string);
+	}
+
 	return success;
 }
 
@@ -266,13 +310,13 @@ void json_test_value_string(void)
 {
 	printf("json_parse_value_string: ");
 	// Normal parse, skip whitespace
-	const char* string = "     \n\t\"Hello World!\"";
+	const char* string = "     \n\t\"Hello \\\"World!\"";
 	json_value result = { .type = JSON_TYPE_NULL };
 	assert(json_parse_value(&string, &result));
 	assert(result.type == JSON_TYPE_STRING);
 	assert(result.value.string != NULL);
-	assert(strlen(result.value.string) == 12);
-	assert(strcmp("Hello World!", result.value.string) == 0);
+	//assert(strlen(result.value.string) == 12);
+	assert(strcmp("Hello \"World!", result.value.string) == 0);
 
 	json_free_value(&result);
 
