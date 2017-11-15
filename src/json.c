@@ -80,6 +80,28 @@ static int json_parse_array(const char** cursor, json_value* parent)
 	return success;
 }
 
+static int json_parse_string(const char** cursor, json_value* parent)
+{
+	int success = 0;
+	const char* start = *cursor;
+	char* end = strchr(*cursor, '"');
+	if (end) {
+		size_t len = end - start;
+		char* new_string = malloc((len + 1) * sizeof(char));
+		memcpy(new_string, start, len);
+		new_string[len] = '\0';
+
+		assert(len == strlen(new_string));
+
+		parent->type = JSON_TYPE_STRING;
+		parent->value.string = new_string;
+
+		*cursor = end + 1;
+		success = 1;
+	}
+	return success;
+}
+
 
 void json_free_value(json_value* val)
 {
@@ -122,22 +144,7 @@ static int json_parse_value(const char** cursor, json_value* parent)
 			break;
 		case '"':
 			++*cursor;
-			const char* start = *cursor;
-			char* end = strchr(*cursor, '"');
-			if (end) {
-				size_t len = end - start;
-				char* new_string = malloc((len + 1) * sizeof(char));
-				memcpy(new_string, start, len);
-				new_string[len] = '\0';
-
-				assert(len == strlen(new_string));
-
-				parent->type = JSON_TYPE_STRING;
-				parent->value.string = new_string;
-
-				*cursor = end + 1;
-				success = 1;
-			}
+			success = json_parse_string(cursor, parent);
 			break;
 		case '{':
 			++(*cursor);
