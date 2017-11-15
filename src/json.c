@@ -57,7 +57,6 @@ static int json_parse_object(const char** cursor, json_value* parent)
 	}
 
 	return success;
-	return 1;
 }
 
 static int json_parse_array(const char** cursor, json_value* parent)
@@ -101,7 +100,7 @@ void json_free_value(json_value* val)
 	val->type = JSON_TYPE_NULL;
 }
 
-int json_is_literal(const char** cursor, const char* literal) {
+static int read_literal(const char** cursor, const char* literal) {
 	size_t cnt = strlen(literal);
 	if (strncmp(*cursor, literal, cnt) == 0) {
 		*cursor += cnt;
@@ -157,7 +156,7 @@ static int json_parse_value(const char** cursor, json_value* parent)
 			}
 			break;
 		case 't': {
-			success = json_is_literal(cursor, "true");
+			success = read_literal(cursor, "true");
 			if (success) {
 				parent->type = JSON_TYPE_BOOL;
 				parent->value.boolean = 1;
@@ -165,7 +164,7 @@ static int json_parse_value(const char** cursor, json_value* parent)
 			break;
 		}
 		case 'f': {
-			success = json_is_literal(cursor, "false");
+			success = read_literal(cursor, "false");
 			if (success) {
 				parent->type = JSON_TYPE_BOOL;
 				parent->value.boolean = 0;
@@ -173,7 +172,7 @@ static int json_parse_value(const char** cursor, json_value* parent)
 			break;
 		}
 		case 'n':
-			success = json_is_literal(cursor, "null");
+			success = read_literal(cursor, "null");
 			break;
 		default: {
 			char* end;
