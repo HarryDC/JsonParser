@@ -244,10 +244,17 @@ static int json_parse_value(const char** cursor, json_value* parent)
 	return success;
 }
 
-
 int json_parse(const char* input, json_value* result)
 {
-	return json_parse_value(&input, result);
+	const char** cursor = &input;
+	int success = json_parse_value(cursor, result);
+	skip_whitespace(cursor);
+	if (**cursor != '\0')
+	{
+		success = 0;
+		json_free_value(result);
+	}
+	return success;
 }
 
 char* json_value_to_string(json_value* value)
@@ -521,6 +528,13 @@ void json_test_value_literal(void) {
 		assert(result.type == JSON_TYPE_NULL);
 		json_free_value(&result);
 	}
+
+	{
+		const char* string = "nulltrue";
+		json_value root;
+		assert(! json_parse(string, &root));
+	}
+
 	printf(" OK\n");
 }
 
