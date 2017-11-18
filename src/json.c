@@ -11,7 +11,7 @@ static int json_parse_value(const char ** cursor, json_value * parent);
 static void skip_whitespace(const char** cursor)
 {
 	if (**cursor == '\0') return;
-	while (iscntrl(**cursor) || isspace(**cursor)) ++(*cursor);
+	while (iscntrl((unsigned char)**cursor) || isspace((unsigned char)**cursor)) ++(*cursor);
 }
 
 static int read_char(const char** cursor, char character)
