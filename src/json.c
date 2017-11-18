@@ -61,11 +61,15 @@ static int json_parse_object(const char** cursor, json_value* parent)
 
 static int json_parse_array(const char** cursor, json_value* parent)
 {
+	parent->type = JSON_TYPE_ARRAY;
+	vector_init(&parent->value.array, sizeof(json_value));
 	int success = 1;
+
 	if (**cursor == ']') {
 		++(*cursor);
 		return success;
 	}
+
 	while (success) {
 		json_value new_value = { .type = JSON_TYPE_NULL };
 		success = json_parse_value(cursor, &new_value);
@@ -77,6 +81,12 @@ static int json_parse_array(const char** cursor, json_value* parent)
 		else if (read_char(cursor, ',')) continue;
 		else success = 0;
 	}
+
+	if (!success) {
+		parent->type = JSON_TYPE_NULL;
+		vector_free(&parent->value.array);
+	}
+
 	return success;
 }
 
@@ -196,15 +206,9 @@ static int json_parse_value(const char** cursor, json_value* parent)
 			success = json_parse_object(cursor, parent);
 			break;
 		case '[':
-			parent->type = JSON_TYPE_ARRAY;
-			vector_init(&parent->value.array, sizeof(json_value));
 			++(*cursor);
 			skip_whitespace(cursor);
 			success = json_parse_array(cursor, parent);
-			if (!success) {
-				parent->type = JSON_TYPE_NULL;
-				vector_free(&parent->value.array);
-			}
 			break;
 		case 't': {
 			success = read_literal(cursor, "true");
